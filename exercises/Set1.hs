@@ -20,8 +20,10 @@ import Mooc.Todo
 ------------------------------------------------------------------------------
 -- Ex 1: define variables one and two. They should have type Int and
 -- values 1 and 2, respectively.
-one :: Int = 1
-two :: Int = 2
+one :: Int
+one = 1
+two :: Int
+two = 2
 
 
 ------------------------------------------------------------------------------
