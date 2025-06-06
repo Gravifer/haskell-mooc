@@ -16,7 +16,14 @@ import Data.List
 -- Hint! pattern matching is your friend.
 
 binomial :: Integer -> Integer -> Integer
-binomial = todo
+binomial n k = case (n, k) of
+  (0, _) | k > 0 -> 0
+  (_, 0) -> 1
+  (_, _) | k < 0 || k > n -> 0
+         | otherwise -> binomial (n - 1) k + binomial (n - 1) (k - 1)
+  -- | k < 0 || k > n = 0
+  -- | k == 0 = 1
+  -- | otherwise = binomial (n - 1) k + binomial (n - 1) (k - 1)
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement the odd factorial function. Odd factorial is like
@@ -27,7 +34,19 @@ binomial = todo
 --   oddFactorial 6 ==> 5*3*1 ==> 15
 
 oddFactorial :: Integer -> Integer
-oddFactorial = todo
+oddFactorial n -- tail recursive version
+  | n < 0     = error "negative input"
+  | even n = oddFactorial (n - 1)
+  | otherwise = go n 1
+  where
+    go k acc
+      | k <= 0    = acc
+      | otherwise = go (k - 2) (k * acc)
+-- oddFactorial n
+--   | n < 0     = error "negative input"
+--   | n == 0    = 1
+--   | even n    = oddFactorial (n - 1)
+--   | otherwise = n * oddFactorial (n - 2)
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the Euclidean Algorithm for finding the greatest
@@ -59,7 +78,11 @@ oddFactorial = todo
 -- * https://en.wikipedia.org/wiki/Euclidean_algorithm
 
 myGcd :: Integer -> Integer -> Integer
-myGcd = todo
+myGcd a b = case (a, b) of
+  (0, _) -> abs b
+  (_, 0) -> abs a
+  (x, y) | x > y -> myGcd (x - y) y
+         | otherwise -> myGcd x (y - x)
 
 ------------------------------------------------------------------------------
 -- Ex 4: Implement the function leftpad which adds space characters
@@ -75,7 +98,12 @@ myGcd = todo
 -- * you can compute the length of a string with the length function
 
 leftpad :: String -> Int -> String
-leftpad = todo
+leftpad str n = replicate padding ' ' ++ str
+  where padding = max 0 (n - length str)
+-- leftpad string n  -- O(n^2) version
+--   | length string >= n = string
+--   | otherwise = leftpad (' ' : string) n
+--   -- | otherwise = replicate (n - length string) ' ' ++ string
 
 ------------------------------------------------------------------------------
 -- Ex 5: let's make a countdown for a rocket! Given a number, you
@@ -91,7 +119,12 @@ leftpad = todo
 -- * you'll probably need a recursive helper function
 
 countdown :: Integer -> String
-countdown = todo
+countdown n
+  | n < 0 = error "negative input"
+  | otherwise = "Ready! " ++ go n
+  where
+    go 0 = "Liftoff!"
+    go k = show k ++ "... " ++ go (k - 1)
 
 ------------------------------------------------------------------------------
 -- Ex 6: implement the function smallestDivisor that returns the
@@ -109,7 +142,14 @@ countdown = todo
 -- Hint: remember the mod function!
 
 smallestDivisor :: Integer -> Integer
-smallestDivisor = todo
+smallestDivisor n
+  | n < 2     = error "input must be greater than 1"
+  | otherwise = go 2 -- go is a closure capturing n
+  where
+    go k
+      | k * k > n = n  -- if no divisor found, n is prime
+      | n `mod` k == 0 = k
+      | otherwise = go (k + 1)
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a function isPrime that checks if the given number
@@ -118,7 +158,9 @@ smallestDivisor = todo
 -- Ps. 0 and 1 are not prime numbers
 
 isPrime :: Integer -> Bool
-isPrime = todo
+isPrime n
+  | n < 2     = False
+  | otherwise = smallestDivisor n == n
 
 ------------------------------------------------------------------------------
 -- Ex 8: implement a function biggestPrimeAtMost that returns the
@@ -133,4 +175,7 @@ isPrime = todo
 --   biggestPrimeAtMost 10 ==> 7
 
 biggestPrimeAtMost :: Integer -> Integer
-biggestPrimeAtMost = todo
+biggestPrimeAtMost n
+  | n < 2     = error "input must be greater than or equal to 2"
+  | isPrime n = n
+  | otherwise = biggestPrimeAtMost (n - 1)
