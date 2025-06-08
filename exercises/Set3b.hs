@@ -39,7 +39,10 @@ import Mooc.Todo
 --   buildList 7 0 3 ==> [3]
 
 buildList :: Int -> Int -> Int -> [Int]
-buildList start count end = todo
+buildList start count end = go start count [end]
+  where go :: Int -> Int -> [Int] -> [Int]
+        go _ 0 acc = acc
+        go s n acc = go s (n-1) (s:acc)
 
 ------------------------------------------------------------------------------
 -- Ex 2: given i, build the list of sums [1, 1+2, 1+2+3, .., 1+2+..+i]
@@ -48,8 +51,27 @@ buildList start count end = todo
 --
 -- Ps. you'll probably need a recursive helper function
 
+myreverse :: [a] -> [a]
+myreverse xs = go xs []
+  where go [] acc = acc
+        go (x:xs) acc = go xs (x:acc)
+
 sums :: Int -> [Int]
-sums i = todo
+sums i = sumsOf [1..i] -- * from Ex 6 in this file; using `..` doesn't feel like cheating
+-- sums i = myreverse (go 1 []) -- this is a more direct implementation, but it is not tail recursive
+--   where go :: Int -> [Int] -> [Int]
+--         go k acc
+--           | k > i = acc
+--           | otherwise = case acc of
+--               [] -> go (k + 1) [k]
+--               (x:_) -> go (k + 1) ((x + k) : acc)
+-- sums i -- * using the sum formula feels like cheating in this exercise
+--   | i <= 0     = []
+--   | otherwise = go 1 i []
+--   where go :: Int -> Int -> [Int] -> [Int]
+--         go k i _ | k > i = []
+--         go k i acc = k*(k+1) `div` 2 : go (k + 1) i acc
+-- sums i = [ m * (m + 1) `div` 2 | m <- [1..i] ] -- * comprehensions shouldn't be allowed in this exercise
 
 ------------------------------------------------------------------------------
 -- Ex 3: define a function mylast that returns the last value of the
@@ -63,7 +85,10 @@ sums i = todo
 --   mylast 0 [1,2,3] ==> 3
 
 mylast :: a -> [a] -> a
-mylast def xs = todo
+mylast def xs = case xs of
+  []     -> def
+  [x]    -> x
+  (x:xs) -> mylast def xs
 
 ------------------------------------------------------------------------------
 -- Ex 4: safe list indexing. Define a function indexDefault so that
@@ -81,7 +106,18 @@ mylast def xs = todo
 --   indexDefault ["a","b","c"] (-1) "d" ==> "d"
 
 indexDefault :: [a] -> Int -> a -> a
-indexDefault xs i def = todo
+indexDefault xs i def = case (xs, i) of
+  ([], _) -> def
+  (x:_, 0) -> x
+  (x:xs, n) | n < 0     -> def
+            | otherwise -> indexDefault xs (n - 1) def
+-- indexDefault xs i def = go xs i
+--   where -- go :: [a] -> Int -> a -- ! adding a type notation would cause incorrect wider interpretion; see ScopedTypeVariables
+--         go [] _ = def
+--         go (x:xs) 0 = x
+--         go (x:xs) n
+--           | n < 0     = def
+--           | otherwise = go xs (n - 1)
 
 ------------------------------------------------------------------------------
 -- Ex 5: define a function that checks if the given list is in
@@ -97,7 +133,10 @@ indexDefault xs i def = todo
 --   sorted [7,2,7] ==> False
 
 sorted :: [Int] -> Bool
-sorted xs = todo
+sorted xs = case xs of
+  []       -> True
+  [x]      -> True
+  (x:y:xs) -> (x <= y) && sorted (y:xs)
 
 ------------------------------------------------------------------------------
 -- Ex 6: compute the partial sums of the given list like this:
@@ -109,7 +148,10 @@ sorted xs = todo
 -- Use pattern matching and recursion (and the list constructors : and [])
 
 sumsOf :: [Int] -> [Int]
-sumsOf xs = todo
+sumsOf xs = go xs 0
+  where go :: [Int] -> Int -> [Int]
+        go [] _ = []
+        go (x:xs) acc = (acc + x) : go xs (acc + x)
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement the function merge that merges two sorted lists of
@@ -121,8 +163,13 @@ sumsOf xs = todo
 --   merge [1,3,5] [2,4,6] ==> [1,2,3,4,5,6]
 --   merge [1,1,6] [1,2]   ==> [1,1,1,2,6]
 
-merge :: [Int] -> [Int] -> [Int]
-merge xs ys = todo
+merge :: [Int] -> [Int] -> [Int] -- a piece from a DnC merge-sort; note that each argument is sorted
+merge xs ys = case (xs, ys) of
+  ([], _) -> ys
+  (_, []) -> xs
+  (x:xs', y:ys')
+    | x <= y    -> x : merge xs' ys
+    | otherwise -> y : merge xs ys'
 
 ------------------------------------------------------------------------------
 -- Ex 8: compute the biggest element, using a comparison function
@@ -146,7 +193,9 @@ merge xs ys = todo
 --     ==> ("Mouse",8)
 
 mymaximum :: (a -> a -> Bool) -> a -> [a] -> a
-mymaximum bigger initial xs = todo
+mymaximum bigger initial xs = case xs of
+  []     -> initial
+  (x:xs) -> mymaximum bigger (if bigger x initial then x else initial) xs
 
 ------------------------------------------------------------------------------
 -- Ex 9: define a version of map that takes a two-argument function
@@ -160,7 +209,10 @@ mymaximum bigger initial xs = todo
 -- Use recursion and pattern matching. Do not use any library functions.
 
 map2 :: (a -> b -> c) -> [a] -> [b] -> [c]
-map2 f as bs = todo
+map2 f xs ys = case (xs, ys) of
+  ([], _) -> []
+  (_, []) -> []
+  (x1:xs', y1:ys') -> f x1 y1 : map2 f xs' ys'
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the function maybeMap, which works a bit like a
@@ -184,4 +236,8 @@ map2 f as bs = todo
 --   ==> []
 
 maybeMap :: (a -> Maybe b) -> [a] -> [b]
-maybeMap f xs = todo
+maybeMap f xs = case xs of
+  []     -> []
+  (x:xs) -> case f x of
+    Just y  -> y : maybeMap f xs
+    Nothing -> maybeMap f xs
