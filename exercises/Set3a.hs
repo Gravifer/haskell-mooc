@@ -65,9 +65,10 @@ mapMaybe f x = fmap f x -- point-free possible
 mapMaybe2 :: (a -> b -> c) -> Maybe a -> Maybe b -> Maybe c
 -- mapMaybe2 f x y = liftA2 f x y -- point-free possible
 mapMaybe2 f x y = case (x, y) of
-    (Nothing, _) -> Nothing
-    (_, Nothing) -> Nothing
+    -- (Nothing, _) -> Nothing
+    -- (_, Nothing) -> Nothing
     (Just v1, Just v2) -> Just (f v1 v2)
+    (_, _)             -> Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: define the functions firstHalf and palindrome so that
@@ -111,7 +112,8 @@ palindrome str = str == reverse str
 --   capitalize "goodbye cruel world" ==> "Goodbye Cruel World"
 
 capitalize :: String -> String
-capitalize string = unwords (map capitalizeFirst (words string))
+-- capitalize string = unwords (map capitalizeFirst (words string))
+capitalize = unwords . map capitalizeFirst . words -- point-free version
   where
     capitalizeFirst "" = "" -- empty string, nothing to capitalize
     capitalizeFirst (x:xs) = toUpper x : xs -- capitalize first letter
@@ -131,7 +133,7 @@ capitalize string = unwords (map capitalizeFirst (words string))
 --   * the function takeWhile
 
 powers :: Int -> Int -> [Int]
-powers k max = takeWhile (<= max) (iterate (*k) 1)
+powers k max = takeWhile (<= max) $ iterate (*k) 1 -- $ map (k^) [0..max]
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a functional while loop. While should be a function
@@ -209,7 +211,8 @@ bomb x = Right (x-1)
 -- Hint! This is a great use for list comprehensions
 
 joinToLength :: Int -> [String] -> [String]
-joinToLength n strs = [x ++ y | x <- strs, y <- strs, length (x ++ y) == n]
+joinToLength i xs = [z | x <- xs, y <- xs, let z = x++y, length z == i] -- * concat once
+-- joinToLength n strs = [x ++ y | x <- strs, y <- strs, length (x ++ y) == n]
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the operator +|+ that returns a list with the first
@@ -224,6 +227,7 @@ joinToLength n strs = [x ++ y | x <- strs, y <- strs, length (x ++ y) == n]
 --   [] +|+ []            ==> []
 
 (+|+) :: [a] -> [a] -> [a]
+xs +|+ ys = take 1 xs ++ take 1 ys -- * actually, using take on [] is safe
 xs +|+ ys = case (xs, ys) of
     ( [],  []) -> []
     (x:_,  []) -> [x]
@@ -302,6 +306,7 @@ multiCompose = foldr (.) id
 multiApp :: ([b] -> c) -> [a -> b] -> a -> c
 multiApp f gs x = f $ map ($ x) gs
 -- multiApp f gs x = map (\g -> f (g x)) gs
+-- multiApp f gs x = f [g x | g <- gs]
 
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
@@ -346,7 +351,7 @@ interpreter commands = go commands 0 0
       "right"   -> go cmds (x + 1) y
       "printX"  -> show x : go cmds x y
       "printY"  -> show y : go cmds x y
-      _         -> go cmds x y -- ignore unknown commands
+      _         -> "BAD" : go cmds x y -- ignore unknown commands
 -- interpreter commands = go commands 0 0 [] -- ! won't work injecting to GHCi
 --   where
 --     go [] _ _ output = output

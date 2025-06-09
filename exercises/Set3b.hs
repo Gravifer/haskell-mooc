@@ -39,10 +39,15 @@ import Mooc.Todo
 --   buildList 7 0 3 ==> [3]
 
 buildList :: Int -> Int -> Int -> [Int]
-buildList start count end = go start count [end]
-  where go :: Int -> Int -> [Int] -> [Int]
-        go _ 0 acc = acc
-        go s n acc = go s (n-1) (s:acc)
+-- buildList start 0 end = [end]
+-- buildList start count end = start : buildList start (count-1) end
+buildList start count end = case count of
+  0 -> [end]
+  _ -> start : buildList start (count - 1) end
+-- buildList start count end = go start count [end]
+--   where go :: Int -> Int -> [Int] -> [Int]
+--         go _ 0 acc = acc
+--         go s n acc = go s (n-1) (s:acc)
 
 ------------------------------------------------------------------------------
 -- Ex 2: given i, build the list of sums [1, 1+2, 1+2+3, .., 1+2+..+i]
@@ -58,6 +63,10 @@ myreverse xs = go xs []
 
 sums :: Int -> [Int]
 sums i = sumsOf [1..i] -- * from Ex 6 in this file; using `..` doesn't feel like cheating
+-- sums i = go 0 1 -- * model solution
+--   where go sum j
+--           | j>i = []
+--           | otherwise = (sum+j) : go (sum+j) (j+1)
 -- sums i = myreverse (go 1 []) -- this is a more direct implementation, but it is not tail recursive
 --   where go :: Int -> [Int] -> [Int]
 --         go k acc
@@ -87,7 +96,7 @@ sums i = sumsOf [1..i] -- * from Ex 6 in this file; using `..` doesn't feel like
 mylast :: a -> [a] -> a
 mylast def xs = case xs of
   []     -> def
-  [x]    -> x
+  [x]    -> x -- * not actually needed
   (x:xs) -> mylast def xs
 
 ------------------------------------------------------------------------------
@@ -209,7 +218,7 @@ mymaximum bigger initial xs = case xs of
 -- Use recursion and pattern matching. Do not use any library functions.
 
 map2 :: (a -> b -> c) -> [a] -> [b] -> [c]
-map2 f xs ys = case (xs, ys) of
+map2 f xs ys = case (xs, ys) of -- * I avoid using a, b, c for terms
   ([], _) -> []
   (_, []) -> []
   (x1:xs', y1:ys') -> f x1 y1 : map2 f xs' ys'
