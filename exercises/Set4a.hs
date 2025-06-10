@@ -172,9 +172,13 @@ average xs = sum xs / fromIntegral (length xs)
 --     ==> "Lisa"
 
 winner :: Map.Map String Int -> String -> String -> String
-winner scores player1 player2 =
-  let [s1, s2] = map (\p -> Map.findWithDefault 0 p scores) [player1, player2]
-  in if s1 >= s2 then player1 else player2
+winner scores player1 player2
+  | score player1 >= score player2 = player1
+  | otherwise = player2
+  where score p = Map.findWithDefault 0 p scores
+-- winner scores player1 player2 =
+--   let [s1, s2] = map (\p -> Map.findWithDefault 0 p scores) [player1, player2]
+--   in if s1 >= s2 then player1 else player2
 -- winner scores player1 player2 = go . compare (Map.findWithDefault 0 player1 scores) (Map.findWithDefault 0 player2 scores)
 --   where
 --     go GT = player1
@@ -194,10 +198,11 @@ winner scores player1 player2 =
 --     ==> Map.fromList [(False,3),(True,1)]
 
 freqs :: (Eq a, Ord a) => [a] -> Map.Map a Int
-freqs = foldr (Map.alter inc) Map.empty -- (Map.alter inc) :: a -> Map.Map a Int -> Map.Map a Int
-  where
-    inc Nothing  = Just 1
-    inc (Just n) = Just (n + 1)
+freqs = foldr (Map.alter $ Just . maybe 1 (+1)) Map.empty -- notice the function https://hackage.haskell.org/package/base-4.21.0.0/docs/Prelude.html#v:maybe
+-- freqs = foldr (Map.alter inc) Map.empty -- (Map.alter inc) :: a -> Map.Map a Int -> Map.Map a Int
+--   where
+--     inc Nothing  = Just 1
+--     inc (Just n) = Just (n + 1)
 -- {-# LANGUAGE TupleSections #-}
 -- (, 0)
 -- freqs xs = let ans = (Map.fromList . map (\k -> (k, 0 :: Int)) $ nub xs)
@@ -245,8 +250,11 @@ transfer from to amount bank =
     (Nothing, _) -> bank  -- from account not found, no change
     (_, Nothing) -> bank  -- to account not found, no change
     (Just fromSum, Just toSum)
-      | fromSum < amount || amount < 0 -> bank  -- invalid transfer conditions, no change
-      | otherwise -> Map.insert from (fromSum - amount) $ Map.insert to (toSum + amount) bank
+      | amount >= 0 && fromSum >= amount ->
+          Map.adjust (+ amount) to (Map.adjust (subtract amount) from bank)
+    _ -> bank
+      -- | fromSum < amount || amount < 0 -> bank  -- invalid transfer conditions, no change
+      -- | otherwise -> Map.insert from (fromSum - amount) $ Map.insert to (toSum + amount) bank
 
 ------------------------------------------------------------------------------
 -- Ex 11: given an Array and two indices, swap the elements in the indices.
@@ -267,8 +275,10 @@ swap i j arr = arr // [(i, arr ! j),(j, arr ! i)]
 -- Hint: check out Data.Array.indices or Data.Array.assocs
 
 maxIndex :: (Ix i, Ord a) => Array i a -> i
-maxIndex arr = let idxs = indices arr -- O(n) time, O(1) space
-  in foldl' go (head idxs) (tail idxs)
-  where
-    go best i = if arr ! i > arr ! best then i else best
+maxIndex arr = index -- model solution
+  where (index, _) = maximumBy (\(_,x) (_,y) -> compare x y) (assocs arr)
+-- maxIndex arr = let idxs = indices arr -- O(n) time, O(1) space
+--   in foldl' go (head idxs) (tail idxs)
+--   where
+--     go best i = if arr ! i > arr ! best then i else best
 -- maxIndex arr = snd $ maximumBy (comparing fst) (assocs arr) -- O(n) time, O(n) space -- (assocs arr) == [(arr ! i, i) | i <- indices arr]
