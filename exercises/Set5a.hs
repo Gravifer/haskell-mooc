@@ -119,7 +119,7 @@ getY p@(Position _ y)= y
 
 -- up increases the y value of a position by one
 up :: Position -> Position
-up  p@(Position x y)= Position x (y+1)
+up p@(Position x y)= Position x (y+1)
 
 -- right increases the x value of a position by one
 right :: Position -> Position
@@ -140,8 +140,9 @@ data Student = Freshman | NthYear Int | Graduated
 study :: Student -> Student
 study Freshman = NthYear 1
 study (NthYear n)
-  | n <= 6    = NthYear (n + 1)
-  | otherwise = Graduated
+  | n <  1      = error "NthYear must be at least 1"
+  | n <= 6      = NthYear (n + 1)
+  | otherwise   = Graduated
 study Graduated = Graduated
 
 
@@ -218,14 +219,18 @@ rgb Red   = [1, 0, 0]
 rgb Green = [0, 1, 0]
 rgb Blue  = [0, 0, 1]
 
-rgb (Mix c1 c2) = let
-    [r1, g1, b1] = rgb c1
-    [r2, g2, b2] = rgb c2
-  in [(r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2]
+rgb (Mix c c') = zipWith avg (rgb c) (rgb c')
+  where avg x y = (x+y)/2
+rgb (Invert c) = map (1-) $ rgb c
+
+-- rgb (Mix c1 c2) = let
+--     [r1, g1, b1] = rgb c1
+--     [r2, g2, b2] = rgb c2
+--   in [(r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2]
   
-rgb (Invert c) = let
-    [r, g, b] = rgb c
-  in [1 - r, 1 - g, 1 - b]
+-- rgb (Invert c) = let
+--     [r, g, b] = rgb c
+--   in [1 - r, 1 - g, 1 - b]
 
 ------------------------------------------------------------------------------
 -- Ex 9: define a parameterized datatype OneOrTwo that contains one or
@@ -368,19 +373,30 @@ fromBin bin =  go bin 0 0
     go (O b) acc pwn = go b (0*2^pwn + acc) (pwn + 1)
     go (I b) acc pwn = go b (1*2^pwn + acc) (pwn + 1)
 
-toBin :: Int -> Bin
-toBin 0   = O End
-toBin 1   = I End
-toBin int
-  | int < 0   = error "Negative numbers are not supported"
-  | even int = O (toBin (int `div` 2))
-  | otherwise = I (toBin (int `div` 2))
--- toBin int -- this is inside out
---   | int <  0 = error "Negative numbers are not supported"
---   | otherwise = go int End
---   where
---     go 0 acc = O acc
---     go 1 acc = I acc
---     go n acc
---       | even n    = go (n `div` 2) (O acc)
---       | otherwise = go (n `div` 2) (I acc)
+-- Solution to the challenge:
+-- An utility function for extracting the bits from an Int:
+bits :: Int -> [Int]
+bits 0 = [0]
+bits 1 = [1]
+bits n = n `mod` 2 : bits (n `div` 2)
+
+-- toBin :: Int -> Bin
+-- toBin n = foldr helper End (bits n)
+--   where helper 0 = O
+--         helper _ = I
+-- toBin :: Int -> Bin
+-- toBin 0   = O End
+-- toBin 1   = I End
+-- toBin int
+--   | int < 0   = error "Negative numbers are not supported"
+--   | even int = O (toBin (int `div` 2))
+--   | otherwise = I (toBin (int `div` 2))
+-- // toBin int -- ! this is inside out
+-- //   | int <  0 = error "Negative numbers are not supported"
+-- //   | otherwise = go int End
+-- //   where
+-- //     go 0 acc = O acc
+-- //     go 1 acc = I acc
+-- //     go n acc
+-- //       | even n    = go (n `div` 2) (O acc)
+-- //       | otherwise = go (n `div` 2) (I acc)
