@@ -22,7 +22,9 @@ import Mooc.Todo
 --   False ||| undefined ==> an error!
 
 (|||) :: Bool -> Bool -> Bool
-x ||| y = todo
+x ||| y
+  | y         = True
+  | otherwise = x
 
 ------------------------------------------------------------------------------
 -- Ex 2: Define the function boolLength, that returns the length of a
@@ -36,7 +38,12 @@ x ||| y = todo
 --   length [False,undefined] ==> 2
 
 boolLength :: [Bool] -> Int
-boolLength xs = todo
+boolLength xs = go xs 0
+  where
+    go [] n = n
+    go (x:xs) n = case x of
+      True  -> go xs (n + 1)
+      False -> go xs (n + 1) -- forces x to be evaluated
 
 ------------------------------------------------------------------------------
 -- Ex 3: Define the function validate which, given a predicate and a
@@ -50,7 +57,7 @@ boolLength xs = todo
 --   validate (\x -> undefined) 3  ==>  an error!
 
 validate :: (a -> Bool) -> a -> a
-validate predicate value = todo
+validate predicate value = if predicate value then value else value
 
 ------------------------------------------------------------------------------
 -- Ex 4: Even though we can't implement the generic seq function
@@ -80,14 +87,17 @@ validate predicate value = todo
 --   myseq (undefined::[Int])
 --     ==> *** Exception: Prelude.undefined
 
-class MySeq a where
-  myseq :: a -> b -> b
+class MySeq a where -- just define the same output for a base case and a 
+  myseq :: a -> b -> b -- generic case, and patter matching would have do do the work
 
 instance MySeq Bool where
-  myseq = todo
+  myseq True  b = b
+  myseq _     b = b
 
 instance MySeq Int where
-  myseq = todo
+  myseq 0 b = b
+  myseq _ b = b
 
 instance MySeq [a] where
-  myseq = todo
+  myseq []    b = b
+  myseq (_:_) b = b
