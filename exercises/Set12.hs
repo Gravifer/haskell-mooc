@@ -105,6 +105,14 @@ instance Functor TwoList where
 count :: (Eq a, Foldable f) => a -> f a -> Int
 count val = getSum . foldMap (bool 0 1 . (== val))
 
+-- count x f = foldr check 0 f
+--   where check y n
+--           | y == x    = n+1
+--           | otherwise = n
+-- -- OR using some library functions:
+-- count' x f = sum $ fmap (\y -> if x==y then 1 else 0) f
+-- -- OR via transforming to a list:
+-- count'' x f = length (filter (==x) (toList f))
 ------------------------------------------------------------------------------
 -- Ex 7: Return all elements that are in two Foldables, as a list.
 --
@@ -114,7 +122,7 @@ count val = getSum . foldMap (bool 0 1 . (== val))
 --   inBoth Nothing [3]    ==> []
 
 inBoth :: (Foldable f, Foldable g, Eq a) => f a -> g a -> [a]
-inBoth fs gs =foldr go [] fs
+inBoth fs gs =foldr go [] fs -- see https://hackage.haskell.org/package/ghc-internal-9.1201.0/docs/src/GHC.Internal.Data.OldList.html#intersect
   where
     go x acc = if x `elem` gs then x : acc else acc
 
