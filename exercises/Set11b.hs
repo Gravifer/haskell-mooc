@@ -20,10 +20,12 @@ import Mooc.Todo
 --   "xfoobarquux"
 
 appendAll :: IORef String -> [String] -> IO ()
-appendAll r xs = do
-  currentValue <- readIORef r
-  let newValue = currentValue ++ concat xs
-  writeIORef r newValue
+appendAll ref xs = forM_ xs app -- equivalent
+  where app x = modifyIORef ref (++x)
+-- appendAll r xs = do
+--   currentValue <- readIORef r
+--   let newValue = currentValue ++ concat xs
+--   writeIORef r newValue
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given two IORefs, swap the values stored in them.
@@ -125,10 +127,10 @@ compose = (<=<) -- flip (>=>)
 --   ["module Set11b where","","import Control.Monad"]
 
 hFetchLines :: Handle -> IO [String]
-hFetchLines h = do
+hFetchLines h = do -- * still possible to get a large thunk
   contents <- hGetContents h
   return (lines contents)
--- hFetchLines handle = go [] -- strict accumulator
+-- hFetchLines handle = go [] -- * strict accumulator
 --   where
 --     go acc = do
 --       eof <- hIsEOF handle
@@ -138,7 +140,7 @@ hFetchLines h = do
 --           line <- hGetLine handle
 --           -- * force evaluation of line to avoid buildup
 --           line `seq` go (line : acc) 
--- hFetchLines handle = do -- space leak
+-- hFetchLines handle = do -- ! space leak, and the thunk is not even flat
 --   ateof <-hIsEOF handle
 --   if not ateof then do
 --     line <- hGetLine handle
@@ -157,9 +159,23 @@ hFetchLines h = do
 -- handle.
 
 hSelectLines :: Handle -> [Int] -> IO [String]
-hSelectLines h nums = do
-  lines <- hFetchLines h
-  return [lines !! (n - 1) | n <- nums, n > 0, n <= length lines]
+hSelectLines h = go 1 -- * strict accumulator
+  where
+    go _ [] = return []
+    go i ns@(n:ns') = do
+      eof <- hIsEOF h
+      if eof
+        then return []
+        else do
+          line <- hGetLine h
+          if i == n
+            then do
+              rest <- go (i + 1) ns'
+              return (line : rest)
+            else go (i + 1) ns
+-- hSelectLines h nums = do -- a *little* better I guess
+--   lines <- hFetchLines h
+--   return [lines !! (n - 1) | n <- nums, n > 0, n <= length lines]
 -- hSelectLines h nums = [hGetLine h | n <- nums, n > 0] -- naive implementation
 
 ------------------------------------------------------------------------------
