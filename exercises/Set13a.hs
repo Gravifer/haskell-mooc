@@ -208,9 +208,9 @@ balance accountName = BankOp go
 
 rob :: String -> String -> BankOp ()
 rob from to =
-  balance from +> \amount ->  -- Get the balance of the 'from' account
-  withdrawOp from amount +>>  -- Withdraw all money from the 'from' account
-  depositOp to amount  -- Deposit the withdrawn money into the 'to' account
+  balance from +>  -- Get the balance of the 'from' account
+  withdrawOp from +>  -- Withdraw all money from the 'from' account
+  depositOp to  -- Deposit the withdrawn money into the 'to' account
 -- do -- were it a monad
 --   amount <- balance from  -- Get the balance of the 'from' account
 --   withdrawOp from amount  -- Withdraw all money from the 'from' account
@@ -267,11 +267,9 @@ paren c = modify $ \count ->  -- * idomatic
     _   -> count
 -- paren c = do
 --   count <- get  -- Get the current state (count of open parentheses)
---   when (count > -1) $ put (case c of -- Update the state with the new count
---       '(' -> count + 1  -- Increase count for '('
---       ')' -> max (-1) (count - 1)  -- Decrease count for ')', but not below -1
---       _   -> count  -- Ignore other characters
---     )
+--   when (s>=0) (case c of '(' -> put (s+1)
+--                          ')' -> put (s-1)
+--                          _ -> return ())
 
 parensMatch :: String -> Bool
 parensMatch s = count == 0
@@ -302,16 +300,16 @@ parensMatch s = count == 0
 -- PS. The order of the list of pairs doesn't matter
 
 count :: Eq a => a -> State [(a,Int)] ()
-count x = do
-  state <- get
-  case lookup x state of
-    Just n  -> put $ (x, n + 1) : filter ((/= x) . fst) state
-    Nothing -> put $ (x, 1) : state
--- count x = modify $ \state ->  -- Use modify to update the state
-  -- let (found, rest) = break (\(y, _) -> y == x) state  -- Find the pair with the value x
-  -- in case found of
-  --   [] -> (x, 1) : rest  -- If not found, add (x, 1) to the state
-  --   ((_, n):_) -> (x, n + 1) : rest  -- If found, increment the count and update the state
+-- count x = do
+--   state <- get
+--   case lookup x state of
+--     Just n  -> put $ (x, n + 1) : filter ((/= x) . fst) state
+--     Nothing -> put $ (x, 1) : state
+count x = modify (inc x)  -- * much more readable
+  where inc x [] = [(x,1)]
+        inc x ((y,k):ys)
+          | x == y    = (y,k+1):ys
+          | otherwise = (y,k):inc x ys
 
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
