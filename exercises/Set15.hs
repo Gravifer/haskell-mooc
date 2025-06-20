@@ -37,8 +37,10 @@ sumTwoMaybes = liftA2 (+)
 --         "code is not suffering","code is not life"]
 
 statements :: [String] -> [String] -> [String]
-statements xs ys = (++) <$> xs <*> (conjunctions <*> ys)
-  where conjunctions = [(" is "++), (" is not "++)]
+statements xs ys = liftA2 (++) xs (liftA2 (++) is ys)
+  where is = [" is ", " is not "]
+-- statements xs ys = (++) <$> xs <*> (conjunctions <*> ys)
+--   where conjunctions = [(" is "++), (" is not "++)]
 
 ------------------------------------------------------------------------------
 -- Ex 3: A simple calculator with error handling. Given an operation
@@ -57,11 +59,14 @@ statements xs ys = (++) <$> xs <*> (conjunctions <*> ys)
 
 calculator :: String -> String -> Maybe Int
 calculator op val = parseOp op <*> readMaybe val
-  where
-    parseOp :: Num a => String -> Maybe (a -> a)
-    parseOp "double" = Just (2*)
-    parseOp "negate" = Just negate
-    parseOp _        = Nothing
+  where parseOp "negate" = pure negate
+        parseOp "double" = pure (*2)
+        parseOp _ = empty
+  -- where
+  --   parseOp :: Num a => String -> Maybe (a -> a)
+  --   parseOp "double" = Just (2*)
+  --   parseOp "negate" = Just negate
+  --   parseOp _        = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: Safe division. Implement the function validateDiv that
@@ -78,7 +83,8 @@ calculator op val = parseOp op <*> readMaybe val
 --  validateDiv 0 3 ==> Ok 0
 
 validateDiv :: Int -> Int -> Validation Int
-validateDiv a b = check (b /= 0) "Division by zero!" (a `div` b)
+validateDiv x y = fmap (div x) (check (y/=0) "Division by zero!" y)
+-- validateDiv a b = check (b /= 0) "Division by zero!" (a `div` b)
 
 ------------------------------------------------------------------------------
 -- Ex 5: Validating street addresses. A street address consists of a
@@ -141,11 +147,15 @@ twoPersons :: Applicative f =>
   f String -> f Int -> f Bool -> f String -> f Int -> f Bool
   -> f [Person]
 twoPersons name1 age1 employed1 name2 age2 employed2 =
-  let person1 = pure <$> liftA3 Person name1 age1 employed1 -- pure os constrained by the (++) below to be of the list monad
-      person2 = pure <$> liftA3 Person name2 age2 employed2
-  -- let person1 = (: []) <$> (Person <$> name1 <*> age1 <*> employed1) -- ((: []) <$>) :: Functor f => f a -> f [a] 
-  --     person2 = (: []) <$> (Person <$> name2 <*> age2 <*> employed2)
-  in (++) <$> person1 <*> person2
+  liftA2 (\x y -> [x,y])
+  (Person <$> name1 <*> age1 <*> employed1)
+  (Person <$> name2 <*> age2 <*> employed2)
+-- twoPersons name1 age1 employed1 name2 age2 employed2 =
+--   let person1 = pure <$> liftA3 Person name1 age1 employed1 -- pure os constrained by the (++) below to be of the list monad
+--       person2 = pure <$> liftA3 Person name2 age2 employed2
+--   -- let person1 = (: []) <$> (Person <$> name1 <*> age1 <*> employed1) -- ((: []) <$>) :: Functor f => f a -> f [a] 
+--   --     person2 = (: []) <$> (Person <$> name2 <*> age2 <*> employed2)
+--   in (++) <$> person1 <*> person2
 
 ------------------------------------------------------------------------------
 -- Ex 7: Validate a String that's either a Bool or an Int. The return
@@ -182,6 +192,19 @@ checkMaybe wrap err = maybe (invalid err) (pure . wrap) -- * avoiding fromJust m
 -- // where
 parseBool str = readMaybe str :: Maybe Bool
 parseInt  str = readMaybe str :: Maybe Int
+
+-- boolOrInt :: String -> Validation (Either Bool Int)  -- * it is also more concise to just not use `check` at all
+-- boolOrInt s = fmap Left (aBool s) <|> fmap Right (anInt s)
+
+-- aBool :: String -> Validation Bool
+-- aBool "True" = pure True
+-- aBool "False" = pure False
+-- aBool _ = invalid "Not a Bool"
+
+-- anInt :: String -> Validation Int
+-- anInt s = case readMaybe s of
+--   Just s -> pure s
+--   Nothing -> invalid "Not an Int"
 
 ------------------------------------------------------------------------------
 -- Ex 8: Improved phone number validation. Implement the function
@@ -263,6 +286,11 @@ parseExpression s
       where parseOp "+" = Just Plus
             parseOp "-" = Just Minus
             parseOp  _  = Nothing
+    -- checkedOp :: String -> Validation (Arg -> Arg -> Expression) -- * it is also more concise to just not use `check` at all
+    -- checkedOp "+" = pure Plus
+    -- checkedOp "-" = pure Minus
+    -- checkedOp s = invalid ("Unknown operator: "++s)
+    
     checkedArg s = checkedNum s <|> checkedVar s
     checkedNum s = checkMaybe Number ("Invalid number: " ++ s) $ readMaybe s
     checkedVar s = check (isVar s) ("Invalid variable: " ++ s) $ Variable (head s)
