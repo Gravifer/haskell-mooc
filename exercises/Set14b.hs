@@ -86,9 +86,8 @@ openDatabase filename = do
 -- given a db connection, an account name, and an amount, deposit
 -- should add an (account, amount) row into the database
 deposit :: Connection -> T.Text -> Int -> IO ()
-deposit db account amount = do
-  execute db depositQuery (account, amount)
-  return ()
+deposit db account amount = execute db depositQuery (account, amount)
+-- * no do block needed; be aware of the desugared syntax adn you'll know
 
 ------------------------------------------------------------------------------
 -- Ex 2: Fetching an account's balance. Below you'll find
@@ -160,15 +159,15 @@ parseInt :: T.Text -> Maybe Int
 parseInt = readMaybe . T.unpack
 
 parseCommand :: [T.Text] -> Maybe Command
-parseCommand [] = Nothing
+parseCommand [] = Nothing  -- design choices: prefer to decouple different transactions
 parseCommand (textCommand : textAccount : textsRest)
   | textCommand == "balance" && null   textsRest = Just (Balance textAccount)
   | textCommand == "deposit" && length textsRest == 1 = do
     amount <- parseInt (head textsRest)
-    return (Deposit textAccount ( amount))
+    return (Deposit  textAccount amount)
   | textCommand == "withdraw" && length textsRest == 1 = do -- TODO: handle account underflow
     amount <- parseInt (head textsRest)
-    return (Deposit textAccount (-amount))
+    return (Withdraw textAccount amount)
 parseCommand _ = Nothing
 
 ------------------------------------------------------------------------------
