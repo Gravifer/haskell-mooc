@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+-- {-# LANGUAGE PatternSynonyms #-}
 module Set14a where
 
 -- Remember to browse the docs of the Data.Text and Data.ByteString
@@ -11,6 +13,7 @@ import Data.Text.Encoding
 import Data.Word
 import Data.Int
 import qualified Data.Text as T
+-- // import Data.Text (pattern (:<)) --! can't do this before Data.Text 2.1.2
 import qualified Data.Text.Lazy as TL
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -27,8 +30,17 @@ import qualified Data.ByteString.Lazy as BL
 --  greetText (T.pack "Martin Freeman") ==> "Hello, Martin Freeman!"
 --  greetText (T.pack "Benedict Cumberbatch") ==> "Hello, Benedict Cumber...!"
 
-greetText :: T.Text -> T.Text
-greetText = todo
+-- greetText :: T.Text -> T.Text
+-- greetText text = 
+--   let name = T.take 15 text
+--       suffix = if T.length text > 15 then "..." else ""
+--   in T.concat [T.pack "Hello, ", name, T.pack suffix, T.pack "!"]
+
+greetText :: T.Text -> T.Text -- this version requires the OverloadedStrings pragma
+greetText text =
+  let name = T.take 15 text
+      suffix = if T.length text > 15 then "..." else ""
+  in T.concat ["Hello, ", name, suffix, "!"]
 
 ------------------------------------------------------------------------------
 -- Ex 2: Capitalize every second word of a Text.
@@ -40,7 +52,10 @@ greetText = todo
 --     ==> "WORD"
 
 shout :: T.Text -> T.Text
-shout = todo
+shout text =
+  let wordsList = T.words text
+      capitalizedWords = zipWith (\i w -> if even i then T.toUpper w else w) [0..] wordsList
+  in T.unwords capitalizedWords
 
 ------------------------------------------------------------------------------
 -- Ex 3: Find the longest sequence of a single character repeating in
@@ -51,20 +66,33 @@ shout = todo
 --   longestRepeat (T.pack "aabbbbccc") ==> 4
 
 longestRepeat :: T.Text -> Int
-longestRepeat = todo
+longestRepeat text = go text 0 0 Nothing
+  where
+    go :: T.Text -> Int -> Int -> Maybe Char -> Int
+    -- // go T.empty maxCount _ _ = maxCount -- ! can't do this before Data.Text 2.1.2
+    go text maxCount currentCount Nothing = case T.uncons text of
+      Nothing -> maxCount -- performance-wise not worse than a T.null guard -- // * doesn't happen because T.empty is handled above
+      Just (c, rest) -> go rest maxCount (currentCount + 1) (Just c) -- * this only happens at the start of the text
+    go text maxCount currentCount (Just prevChar) = case T.uncons text of
+      Nothing -> max maxCount currentCount -- // * doesn't happen because T.empty is handled above
+      Just (c, rest)
+        | c == prevChar -> go rest maxCount (currentCount + 1) (Just c)
+        | otherwise     -> go rest (max maxCount currentCount) 1 (Just c)
 
 ------------------------------------------------------------------------------
 -- Ex 4: Given a lazy (potentially infinite) Text, extract the first n
 -- characters from it and return them as a strict Text.
 --
 -- The type of the n parameter is Int64, a 64-bit Int. Can you figure
--- out why this is convenient?
+-- out why this is convenient?  -- * removes the need of using fromIntegral
 --
 -- Example:
 --   takeStrict 15 (TL.pack (cycle "asdf"))  ==>  "asdfasdfasdfasd"
 
 takeStrict :: Int64 -> TL.Text -> T.Text
-takeStrict = todo
+takeStrict n textL = 
+  let textL' = TL.take n textL
+  in TL.toStrict textL'
 
 ------------------------------------------------------------------------------
 -- Ex 5: Find the difference between the largest and smallest byte
@@ -76,7 +104,12 @@ takeStrict = todo
 --   byteRange (B.pack [3]) ==> 0
 
 byteRange :: B.ByteString -> Word8
-byteRange = todo
+byteRange bstr
+  | B.null bstr = 0
+  | otherwise = maxByte - minByte
+  where
+    maxByte = B.foldl' max 0 bstr
+    minByte = B.foldl' min 255 bstr
 
 ------------------------------------------------------------------------------
 -- Ex 6: Compute the XOR checksum of a ByteString. The XOR checksum of
@@ -97,7 +130,7 @@ byteRange = todo
 --   xorChecksum (B.pack []) ==> 0
 
 xorChecksum :: B.ByteString -> Word8
-xorChecksum = todo
+xorChecksum = B.foldl' xor 0
 
 ------------------------------------------------------------------------------
 -- Ex 7: Given a ByteString, compute how many UTF-8 characters it
@@ -114,7 +147,9 @@ xorChecksum = todo
 --   countUtf8Chars (B.drop 1 (encodeUtf8 (T.pack "åäö"))) ==> Nothing
 
 countUtf8Chars :: B.ByteString -> Maybe Int
-countUtf8Chars = todo
+countUtf8Chars bstrS = case decodeUtf8' bstrS of
+  (Right t) -> Just (T.length t)
+  (Left  t) -> Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 8: Given a (nonempty) strict ByteString b, generate an infinite
@@ -126,5 +161,5 @@ countUtf8Chars = todo
 --     ==> [0,1,2,2,1,0,0,1,2,2,1,0,0,1,2,2,1,0,0,1]
 
 pingpong :: B.ByteString -> BL.ByteString
-pingpong = todo
-
+pingpong  bstrS = BL.cycle $ bstrL <> BL.reverse bstrL
+    where bstrL = BL.fromStrict bstrS
